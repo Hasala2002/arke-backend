@@ -24,5 +24,3 @@ dist-ssr
 *.sw?
 
 .env
-pb_data
-pb_migrations
