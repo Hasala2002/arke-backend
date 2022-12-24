@@ -8,7 +8,6 @@ dotenv.config()
 export const client = {
   user: process.env.pocketbase_user,
   password: process.env.pocketbase_password,
-  cors_link: process.env.react_client
 }
 
 import http from 'http'
@@ -28,11 +27,16 @@ console.log(pb.authStore.isValid);
 
 app.use(cors());
 
+// const httpsOptions = {
+//   key: fs.readFileSync(path.join(__dirname, 'cert', 'key.pem')),
+//   cert: fs.readFileSync(path.join(__dirname, 'cert', 'cert.pem')),
+// }
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: client.cors_link,
+    origin: ['http://localhost:5173','https://arke.vercel.app'],
     methods: ["GET", "POST"],
   },
 });
