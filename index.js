@@ -19,7 +19,7 @@ export const client = {
   password: process.env.pocketbase_password,
 }
 
-import http from 'http'
+// import http from 'http'
 import https from 'https'
 
 import { Server } from 'socket.io'
@@ -37,14 +37,14 @@ console.log(pb.authStore.isValid);
 
 app.use(cors());
 
-//  const httpsOptions = {
-//    key: fs.readFileSync(path.join(__dirname, 'cert', 'key.pem')),
-//    cert: fs.readFileSync(path.join(__dirname, 'cert', 'cert.pem')),
-//  }
+ const httpsOptions = {
+   key: fs.readFileSync(path.join(__dirname, 'cert', 'key.pem')),
+   cert: fs.readFileSync(path.join(__dirname, 'cert', 'cert.pem')),
+ }
 
-// const server = https.createServer(httpsOptions,app);
+const server = https.createServer(httpsOptions,app);
 
-const server = http.createServer(app)
+// const server = http.createServer(app)
 
 const io = new Server(server, {
   cors: {
