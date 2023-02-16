@@ -19,6 +19,7 @@ export const client = {
   password: process.env.pocketbase_password,
 }
 
+// import http from 'http'
 import https from 'https'
 
 import { Server } from 'socket.io'
@@ -28,7 +29,7 @@ import cors from 'cors'
 import PocketBase from 'pocketbase'
 import console from 'console';
 
-const pb = new PocketBase('http://127.0.0.1:8090');
+const pb = new PocketBase('http://arkeapi.tech:8090');
 
 const authData = await pb.admins.authWithPassword(client.user, client.password);
 
@@ -42,6 +43,8 @@ app.use(cors());
  }
 
 const server = https.createServer(httpsOptions,app);
+
+// const server = http.createServer(app)
 
 const io = new Server(server, {
   cors: {
@@ -106,7 +109,8 @@ app.get('/', (req, res)=>{
                   io.to(roomId).emit('receive-message',messageData)
               })
 
-              socket.on('disconnect', async ()=>{
+              socket.on('leave-room',async (roomId)=>{
+                socket.leave(roomId);
                 if(io.sockets.adapter.rooms.get(roomId)){
                   const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
                   const {id} = record
@@ -124,6 +128,35 @@ app.get('/', (req, res)=>{
                   const {id} = record
 
                   const deleteRecord = await pb.collection('rooms').delete(id)
+                }
+              })
+
+              socket.on('disconnect', async ()=>{
+                if(io.sockets.adapter.rooms.get(roomId)){
+                  const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
+                  const {id} = record
+
+                  const updateRecord = await pb.collection('rooms').update(id,{
+                    roomId: roomId,
+                    roomName: roomName,
+                    participants: io.sockets.adapter.rooms.get(roomId).size
+                  })
+
+                  io.to(roomId).emit('update-room-count',io.sockets.adapter.rooms.get(roomId).size)
+
+                }else{
+
+                  try{
+                    const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
+                    const {id} = record
+  
+                    const deleteRecord = await pb.collection('rooms').delete(id)
+                  }catch(error){
+                    if(error.data.code === 404){
+                      console.log("Room already deleted!")
+                    }
+                  }
+
                 }
               })
     });
