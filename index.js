@@ -19,21 +19,23 @@ export const client = {
   password: process.env.pocketbase_password,
 }
 
-// import http from 'http'
+import http from 'http'
 import https from 'https'
 
 import { Server } from 'socket.io'
 
 import cors from 'cors'
 
-import PocketBase from 'pocketbase'
+// import PocketBase from 'pocketbase'
 import console from 'console';
 
-const pb = new PocketBase('http://arkeapi.tech:8090');
+let rooms = []
 
-const authData = await pb.admins.authWithPassword(client.user, client.password);
+// const pb = new PocketBase('http://arkeapi.tech:8090');
 
-console.log(pb.authStore.isValid);
+// const authData = await pb.admins.authWithPassword(client.user, client.password);
+
+// console.log(pb.authStore.isValid);
 
 app.use(cors());
 
@@ -62,18 +64,14 @@ app.get('/', (req, res)=>{
   io.on('connection', (socket) => {
 
     socket.on('check-if-room-exists', async (roomId) => {
+        let index = rooms.findIndex(obj => obj.roomId === roomId);
 
-      try {
-        const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
-        const {roomName,participants} = record
-        socket.emit('room-data',{roomName,participants}) 
-      } catch (error) {
-        // console.log(error.data.code)
-        if(error.data.code === 404){
-          socket.emit('room-404',{code: 404})
-        }
-      }      
-
+        if(index!==-1){
+          const {roomName,participants} = rooms[index]
+          socket.emit('room-data',{roomName,participants})  
+        }else{
+          console.log(rooms,roomId)
+        }   
     })
 
     socket.on('join-room', async (roomId,userData) => {
@@ -84,20 +82,38 @@ app.get('/', (req, res)=>{
 
 
               if(newRoom){  
-                const newRecord = await pb.collection('rooms').create({
+                // const newRecord = await pb.collection('rooms').create({
+                //   roomId: roomId,
+                //   roomName: roomName,
+                //   participants: 1
+                // });
+
+                rooms.push({
                   roomId: roomId,
                   roomName: roomName,
                   participants: 1
-                });
-              }else{
-                const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
-                const {id} = record
-
-                const updateRecord = await pb.collection('rooms').update(id,{
-                  roomId: roomId,
-                  roomName: roomName,
-                  participants: io.sockets.adapter.rooms.get(roomId).size
                 })
+
+                console.log(rooms)
+
+              }else{
+                // const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
+                // const {id} = record
+
+                // const updateRecord = await pb.collection('rooms').update(id,{
+                //   roomId: roomId,
+                //   roomName: roomName,
+                //   participants: io.sockets.adapter.rooms.get(roomId).size
+                // })
+
+
+                let index = rooms.findIndex(obj => obj.roomId === roomId);
+
+                if (index !== -1) {
+                  rooms[index] = {...rooms[index], ...{ roomId: roomId, roomName: roomName, participants: io.sockets.adapter.rooms.get(roomId).size}
+                  };
+                }
+
                 io.to(roomId).emit('update-room-count',io.sockets.adapter.rooms.get(roomId).size)
                 // console.log(io.sockets.adapter.rooms.get(roomId).size)
               }
@@ -112,45 +128,65 @@ app.get('/', (req, res)=>{
               socket.on('leave-room',async (roomId)=>{
                 socket.leave(roomId);
                 if(io.sockets.adapter.rooms.get(roomId)){
-                  const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
-                  const {id} = record
+                  // const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
+                  // const {id} = record
 
-                  const updateRecord = await pb.collection('rooms').update(id,{
-                    roomId: roomId,
-                    roomName: roomName,
-                    participants: io.sockets.adapter.rooms.get(roomId).size
-                  })
+                  // const updateRecord = await pb.collection('rooms').update(id,{
+                  //   roomId: roomId,
+                  //   roomName: roomName,
+                  //   participants: io.sockets.adapter.rooms.get(roomId).size
+                  // })
+
+                  let index = rooms.findIndex(obj => obj.roomId === roomId);
+
+                  if (index !== -1) {
+                    rooms[index] = {...rooms[index], ...{ roomId: roomId, roomName: roomName, participants: io.sockets.adapter.rooms.get(roomId).size}
+                    };
+                  }
 
                   io.to(roomId).emit('update-room-count',io.sockets.adapter.rooms.get(roomId).size)
 
                 }else{
-                  const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
-                  const {id} = record
+                  // const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
+                  // const {id} = record
 
-                  const deleteRecord = await pb.collection('rooms').delete(id)
+                  // const deleteRecord = await pb.collection('rooms').delete(id)
                 }
               })
 
               socket.on('disconnect', async ()=>{
                 if(io.sockets.adapter.rooms.get(roomId)){
-                  const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
-                  const {id} = record
+                  // const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
+                  // const {id} = record
 
-                  const updateRecord = await pb.collection('rooms').update(id,{
-                    roomId: roomId,
-                    roomName: roomName,
-                    participants: io.sockets.adapter.rooms.get(roomId).size
-                  })
+                  // const updateRecord = await pb.collection('rooms').update(id,{
+                  //   roomId: roomId,
+                  //   roomName: roomName,
+                  //   participants: io.sockets.adapter.rooms.get(roomId).size
+                  // })
+
+                  let index = rooms.findIndex(obj => obj.roomId === roomId);
+
+                  if (index !== -1) {
+                    rooms[index] = {...rooms[index], ...{ roomId: roomId, roomName: roomName, participants: io.sockets.adapter.rooms.get(roomId).size}
+                    };
+                  }
 
                   io.to(roomId).emit('update-room-count',io.sockets.adapter.rooms.get(roomId).size)
 
                 }else{
 
                   try{
-                    const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
-                    const {id} = record
+                    // const record = await pb.collection('rooms').getFirstListItem(`roomId="${roomId}"`)
+                    // const {id} = record
+                    
+                    let index = rooms.findIndex(obj => obj.roomId === roomId);
+
+                    if (index !== -1) {
+                      rooms.splice(index, 1);
+                    }
   
-                    const deleteRecord = await pb.collection('rooms').delete(id)
+                    // const deleteRecord = await pb.collection('rooms').delete(id)
                   }catch(error){
                     if(error.data.code === 404){
                       console.log("Room already deleted!")
